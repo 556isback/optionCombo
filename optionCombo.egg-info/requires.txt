@@ -1,0 +1,7 @@
+matplotlib
+numpy
+pandas
+py_vollib==1.0.1
+py_vollib_vectorized==0.1.1
+seaborn
+tqdm
