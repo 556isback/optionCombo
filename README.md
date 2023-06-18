@@ -2,7 +2,7 @@
 
 this is a library for finding all the possible option combinations of a single asset.
 
-Currently only support two to four options with same expiry date.
+Currently only supports finding strategies composed of two to four option combinations with same expiry date.
 
 you can find tutorial under the example file which include function to collect and format the data. it's a ready to go tutorial if you wish to trade on Deribit.
 
