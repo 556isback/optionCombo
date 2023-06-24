@@ -21,6 +21,37 @@ def is_two_dimensional(lst):
         return all(isinstance(elem, list) for elem in lst)
     return False
 
+def has_same_form(list1, list2):
+    if len(list1) != len(list2):
+        return False
+
+    for item1, item2 in zip(list1, list2):
+        if type(item1) != type(item2):
+            return False
+        if isinstance(item1, list) and isinstance(item2, list):
+            if not has_same_form(item1, item2):
+                return False
+    return True
+def all_positive(l1,l2):
+    numbers = [a*b for a,b in zip(l1,l2)]
+    for num in numbers:
+        if num <= 0:
+            return False
+    return True
+
+def correct_form(list1, list2):
+    if len(list1) != len(list2):
+        return False
+    for i,j in zip(list1,list2):
+        if is_two_dimensional(j):
+            for ele in j:
+                if not has_same_form(i,ele):
+                    return False
+        else:
+            if not has_same_form(i,j):
+                return False
+    return True
+
 
 
 def calRange(df,daysTillExpir,interval_width = 2):

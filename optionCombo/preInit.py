@@ -7,7 +7,7 @@ import py_vollib_vectorized
 from datetime import datetime , timezone, timedelta
 import numpy as np
 
-def Prep(expiryDate, optionDf, priceDf = None, spotPrice = None,interval=2,Bound=None,strikePriceRange=0.3,impiledVolRange=0.3):
+def Prep(expiryDate, optionDf, priceDf = None, spotPrice = None, interval = 2, Bound = None ,strikePriceRange = 0.3 , impiledVolRange = 0.3 ):
 
     """
     this function is for pre-computation, like option delta, vega, theta, and option price.

@@ -7,9 +7,26 @@ import py_vollib_vectorized
 from datetime import datetime , timezone, timedelta
 import numpy as np
 
-def Prep(time1, optionDf, priceDf = None, spotPrice = None,interval=2,Bound=None,strikePriceRange=0.3,impiledVolRange=0.3):
+def Prep(expiryDate, optionDf, priceDf = None, spotPrice = None, interval = 2, Bound = None ,strikePriceRange = 0.3 , impiledVolRange = 0.3 ):
 
-    daysTillExpir = (pd.to_datetime(time1) - datetime.now())/pd.to_timedelta('1d')
+    """
+    this function is for pre-computation, like option delta, vega, theta, and option price.
+    it calculate the above numbers in a preset range eg. impiledVolRange, price range.
+    it also calculate the above numbers when option expiry.
+
+    :param expiryDate: expiry date of the option you want to trade on, doesn't support multiple dates at the moment
+    :param optionDf: DataFrame containing option's expiry date, bid ask Iv, strike price, and option type
+    :param priceDf: DataFrame containing underlying asset's price data, it is used for determine expected price range and get current asset price, it's not necessary when privided spot price and Bound para.
+    :param spotPrice: underlying asset current price, not necessary when provided priceDf
+    :param interval: how many standard deviation to calculate the expected price range
+    :param Bound: underlying asset range bound to performe calculate on. eg. [50,100]
+    :param strikePriceRange: strike price range, 0.3 stands for 30 percent above or below the current underlying asset price
+    :param impiledVolRange: implied volatility range, 0.3 stands for 30 percents above or below the option's impiled volality
+    :return:
+        pre-compute data, strike price, asset's current price
+    """
+
+    daysTillExpir = (pd.to_datetime(expiryDate) - datetime.now())/pd.to_timedelta('1d')
 
     if not spotPrice:
         if type(priceDf) != pd.core.frame.DataFrame:
@@ -36,7 +53,7 @@ def Prep(time1, optionDf, priceDf = None, spotPrice = None,interval=2,Bound=None
 
 
         option_data = optionDf.loc[
-            (optionDf['expiration'] == time1) & (optionDf['K'] <= spotPrice * upperK) & (optionDf['K'] >= spotPrice * lowerK)
+            (optionDf['expiration'] == expiryDate) & (optionDf['K'] <= spotPrice * upperK) & (optionDf['K'] >= spotPrice * lowerK)
         ]
 
         option_data['per_ivs'] = option_data['bidIV'].apply(lambda x: list(np.linspace(1 * lowerIV, 1 * upperIV, 89)), 0)
@@ -85,7 +102,7 @@ def Prep(time1, optionDf, priceDf = None, spotPrice = None,interval=2,Bound=None
                      joined1['bidIV']).values.reshape(1, -1)[0]
 
         preOption1 = {'C': {}, 'P': {}}
-        d = list(joined1.groupby(['is_call']))
+        d = list(joined1.groupby('is_call'))
         for type1 in d:
             f = list(type1[1].groupby('K'))
             for stri in f:
@@ -134,7 +151,7 @@ def Prep(time1, optionDf, priceDf = None, spotPrice = None,interval=2,Bound=None
                      joined1['bidIV']).values.reshape(1, -1)[0]
 
         preOption2 = {'C': {}, 'P': {}}
-        d = list(joined1.groupby(['is_call']))
+        d = list(joined1.groupby('is_call'))
         for type1 in d:
             f = list(type1[1].groupby('K'))
             for stri in f:
@@ -143,13 +160,13 @@ def Prep(time1, optionDf, priceDf = None, spotPrice = None,interval=2,Bound=None
                      'buy_gamma', 'sell_gamma', 'buy_theta', 'sell_theta', 'spot_per', 'per_ivs']]
 
         preOption3 = {'C': {}, 'P': {}}
-        d = list(option_data.groupby(['is_call']))
+        d = list(option_data.groupby('is_call'))
         for type1 in d:
             f = list(type1[1].groupby('K'))
             for stri in f:
                 preOption3[type1[0]][stri[0]] = stri[1][
                     ['askIV', 'bidIV','expiry']]
 
-        return [preOption1,preOption2,preOption3],joined1,spotPrice
+        return [preOption1,preOption2,preOption3],joined1['K'].unique(),spotPrice
     else:
         raise ValueError(" incorrect form of price bound")
