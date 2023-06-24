@@ -2,9 +2,9 @@ from setuptools import setup
 
 setup(
     name='optionCombo',
-    version='0.1.0',
-    description='this is a packgage to scan the possible option combo',
-    url='https://github.com/your_username/your_package_name',
+    version='0.1.1',
+    description='this is a library for finding all the possible option combinations of a single asset.',
+    url='https://github.com/556isback/optionCombo',
     author='ZHI LIANG CHEN',
     author_email='theon556isback@gmail.com',
     license='MIT',

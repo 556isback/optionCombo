@@ -1,8 +1,9 @@
 Metadata-Version: 2.1
 Name: optionCombo
-Version: 0.1.0
-Summary: this is a packgage to scan the possible option combo
-Home-page: https://github.com/your_username/your_package_name
-Author: Moisy Chan
+Version: 0.1.1
+Summary: this is a library for finding all the possible option combinations of a single asset.
+Home-page: https://github.com/556isback/optionCombo
+Author: ZHI LIANG CHEN
 Author-email: theon556isback@gmail.com
 License: MIT
+License-File: LICENSE
