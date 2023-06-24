@@ -2,7 +2,7 @@ from optionCombo import optionModel,preInit
 import pandas as pd
 import numpy as np
 from datetime import datetime
-option_data = pd.read_csv('./test/optionsD.csv',dtype={
+option_data = pd.read_csv('../test/optionsD.csv',dtype={
     'is_call':str,
     'K':float,
     'askIV':float,
@@ -11,7 +11,7 @@ option_data = pd.read_csv('./test/optionsD.csv',dtype={
     'expiration':str
 })
 option_data['expiration'] = pd.to_datetime(option_data['expiration'])
-pricedata = pd.read_csv('./test/price.csv')
+pricedata = pd.read_csv('../test/price.csv')
 expirDate = '2023-06-30T00:00:00.000000000'
 pricedata['Timestamp'] = pd.to_datetime(pricedata['Timestamp'])
 pricedata["close"] = pd.to_numeric(pricedata["close"])
