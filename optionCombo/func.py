@@ -59,7 +59,7 @@ def calRange(df,daysTillExpir,interval_width = 2):
     minutes = df.Timestamp.diff().values[-1] / np.timedelta64(60, 's')
     forward = daysTillExpir
     theta   = 60 * 24 * forward / minutes
-    rolling_len = int(len(close))
+    rolling_len = int(len(close)/4*3)
     # Expected Range Model
     df['return'] = close.pct_change().dropna()
     log_return = df['return']
