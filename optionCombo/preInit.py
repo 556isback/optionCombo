@@ -106,9 +106,11 @@ def Prep(expiryDate, optionDf, priceDf = None, spotPrice = None, interval = 2, B
         for type1 in d:
             f = list(type1[1].groupby('K'))
             for stri in f:
-                preOption1[type1[0]][stri[0]] = stri[1][
-                    ['buy_price', 'sell_price', 'spot_price', 'buy_delta', 'sell_delta', 'buy_vega', 'sell_vega',
-                     'buy_gamma', 'sell_gamma', 'buy_theta', 'sell_theta', 'spot_per', 'per_ivs']]
+                tempd = {}
+                for key in ['buy_price', 'sell_price', 'spot_price', 'buy_delta', 'sell_delta', 'buy_vega', 'sell_vega',
+                     'buy_gamma', 'sell_gamma', 'buy_theta', 'sell_theta', 'spot_per', 'per_ivs']:
+                    tempd[key] = stri[1][key].values
+                preOption1[type1[0]][stri[0]] = tempd
 
 
         joined1 = temp
@@ -155,9 +157,12 @@ def Prep(expiryDate, optionDf, priceDf = None, spotPrice = None, interval = 2, B
         for type1 in d:
             f = list(type1[1].groupby('K'))
             for stri in f:
-                preOption2[type1[0]][stri[0]] = stri[1][
-                    ['buy_price', 'sell_price', 'spot_price', 'buy_delta', 'sell_delta', 'buy_vega', 'sell_vega',
-                     'buy_gamma', 'sell_gamma', 'buy_theta', 'sell_theta', 'spot_per', 'per_ivs']]
+                tempd = {}
+                for key in ['buy_price', 'sell_price', 'spot_price', 'buy_delta', 'sell_delta', 'buy_vega', 'sell_vega',
+                     'buy_gamma', 'sell_gamma', 'buy_theta', 'sell_theta', 'spot_per', 'per_ivs']:
+                    tempd[key] = stri[1][key].values
+                preOption2[type1[0]][stri[0]] = tempd
+
 
         preOption3 = {'C': {}, 'P': {}}
         d = list(option_data.groupby('is_call'))
@@ -165,7 +170,7 @@ def Prep(expiryDate, optionDf, priceDf = None, spotPrice = None, interval = 2, B
             f = list(type1[1].groupby('K'))
             for stri in f:
                 preOption3[type1[0]][stri[0]] = stri[1][
-                    ['askIV', 'bidIV','expiry']]
+                    ['askIV', 'bidIV','expiry']].to_dict('list')
 
         return [preOption1,preOption2,preOption3],joined1['K'].unique(),spotPrice
     else:

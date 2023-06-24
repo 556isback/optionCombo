@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 
 class option_model:
-    def __init__(self, spot_price, strikePrice, preoption, optiontypes = [[1, 1, 1, 1]], tradetypes = None, maxquantity=3):
+    def __init__(self, spot_price, strikePrice, preoption, optiontypes=[[1, 1, 1, 1]], tradetypes=None, maxquantity=3):
 
         """
         this is a class to performe calculation and plotting of option strategy
@@ -79,9 +79,9 @@ class option_model:
             for stri in combos:
                 stris = [stri[0], stri[1]]
                 map_r = [1 if ab > 0 else -1 for ab in mb]
-                vols = [float(self.preOption3[map_cp[m]][stri_temp][map_ab[b]].values[0]) for stri_temp, m, b in
+                vols = [float(self.preOption3[map_cp[m]][stri_temp][map_ab[b]][0]) for stri_temp, m, b in
                         zip(stris, mn, map_r)]
-                expirys = [self.preOption3[map_cp[m]][stri_temp]['expiry'].values[0] for stri_temp, m, b in
+                expirys = [self.preOption3[map_cp[m]][stri_temp]['expiry'][0] for stri_temp, m, b in
                            zip(stris, mn, map_r)]
                 if min(vols) > 0:
                     res.append([self.spot_price, expirys, stris, vols, mn, mb])
@@ -92,9 +92,9 @@ class option_model:
                 if stri[0] - stri[1] == stri[1] - stri[2] and stri[0] < self.spot_price and stri[2] > self.spot_price:
                     map_r = [1 if ab > 0 else -1 for ab in mb]
 
-                    vols = [float(self.preOption3[map_cp[m]][stri_temp][map_ab[b]].values[0]) for stri_temp, m, b in
+                    vols = [float(self.preOption3[map_cp[m]][stri_temp][map_ab[b]][0]) for stri_temp, m, b in
                             zip(stris, mn, map_r)]
-                    expirys = [self.preOption3[map_cp[m]][stri_temp]['expiry'].values[0] for stri_temp, m, b in
+                    expirys = [self.preOption3[map_cp[m]][stri_temp]['expiry'][0] for stri_temp, m, b in
                                zip(stris, mn, map_r)]
                     if min(vols) > 0:
                         res.append([self.spot_price, expirys, stris, vols, mn, mb])
@@ -107,9 +107,9 @@ class option_model:
                     stris = [stri[0], stri[1], stri[2], stri[3]]
                     map_r = [1 if ab > 0 else -1 for ab in mb]
 
-                    vols = [float(self.preOption3[map_cp[m]][stri_temp][map_ab[b]].values[0]) for stri_temp, m, b in
+                    vols = [float(self.preOption3[map_cp[m]][stri_temp][map_ab[b]][0]) for stri_temp, m, b in
                             zip(stris, mn, map_r)]
-                    expirys = [self.preOption3[map_cp[m]][stri_temp]['expiry'].values[0] for stri_temp, m, b in
+                    expirys = [self.preOption3[map_cp[m]][stri_temp]['expiry'][0] for stri_temp, m, b in
                                zip(stris, mn, map_r)]
                     if min(vols) > 0:
                         res.append([self.spot_price, expirys, stris, vols, mn, mb])
@@ -204,7 +204,6 @@ class option_model:
             return df
 
     def model_find_v2(self, paras):
-
         """
         this is a function call by options_model_finder after geeting all the combinations, it calculate the strategy's geeks, and all kinds of stats, and return the result
         :param paras:
@@ -224,7 +223,9 @@ class option_model:
         options = [{'type': type1, 'strike': str1, 'expiry': expiry, 'vol': vol, 'quantity': quty_1, 'map': map_1}
                    for type1, str1, vol, quty_1, map_1, expiry in zip(types, strs, vols, quty, map_fu, expirys)]
 
-        payoffs = calculate_strategy_expiry_payoff(options, preOption2, map_bs)
+        payoffs = np.array(calculate_strategy_expiry_payoff(options, preOption2, map_bs))
+        min_index = np.where(payoffs == min(payoffs))[0][0]
+        max_index = np.where(payoffs == max(payoffs))[0][0]
         net_premium = calculate_strategy_net_premium(options, spot_price).values[0][0]
         premium = calculate_strategy_premium(options, spot_price).values[0][0]
         profit = len(payoffs[payoffs > net_premium])
@@ -236,8 +237,7 @@ class option_model:
         thetas = calculate_strategy_theta(options, preOption, map_bs)
         delta_starting_point = calculate_strategy_delta_starting_point(options, spot_price).values[0][0]
         min_payoffs = min(payoffs)
-        min_index = np.where(payoffs == min(payoffs))[0]
-        max_index = np.where(payoffs == max(payoffs))[0]
+
         wv, wp, bv, bp = calculate_strategy_worstBestCase(min_index, max_index, options, preOption)
 
         straSym = '__'.join(
@@ -272,6 +272,7 @@ class option_model:
         # Define call and put options
         options = [{'type': type1, 'strike': str1, 'expiry': expiry, 'vol': vol, 'quantity': quty_1, 'map': map_1}
                    for type1, str1, vol, quty_1, map_1, expiry in zip(types, strs, vols, quty, map_fu, expirys)]
+
         # prices = [calculate_price(option_1, spot_price) for option_1 in options]
         payoffs = calculate_strategy_expiry_payoff(options, preOption2, map_bs)
         net_premium = calculate_strategy_net_premium(options, spot_price).values[0][0]
@@ -280,8 +281,8 @@ class option_model:
         deltas = calculate_strategy_delta(options, preOption, map_bs)
         vegas = calculate_strategy_vega(options, preOption, map_bs)
         thetas = calculate_strategy_theta(options, preOption, map_bs)
-        min_index = np.where(payoffs == min(payoffs))[0]
-        max_index = np.where(payoffs == max(payoffs))[0]
+        min_index = np.where(payoffs == min(payoffs))[0][0]
+        max_index = np.where(payoffs == max(payoffs))[0][0]
         profit = len(payoffs[payoffs > net_premium])
         loss = len(payoffs[payoffs < net_premium])
         probal = profit / (profit + loss)
@@ -289,10 +290,9 @@ class option_model:
         wv, wp, bv, bp = calculate_strategy_worstBestCase(min_index, max_index, options, preOption)
         # Plot strategy metrics
 
-        per_ivs = preOption2[options[0]['type']][options[0]['strike']]['per_ivs'].astype('float')
-        spot_per = preOption2[options[0]['type']][options[0]['strike']]['spot_price'].astype('float').values
+        per_ivs = preOption2[options[0]['type']][options[0]['strike']]['per_ivs']
+        spot_per = preOption2[options[0]['type']][options[0]['strike']]['spot_price']
 
-        temp_df = pd.DataFrame({'payoffs': payoffs - net_premium, 'spot_per': spot_per, 'per_ivs': per_ivs})
         ax = sns.lineplot(x=spot_per, y=payoffs)
         ax.axhline(net_premium, color='red')
 
