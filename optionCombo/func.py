@@ -4,6 +4,8 @@ import math
 import py_vollib.black_scholes as bs
 import py_vollib.black_scholes.greeks.numerical as greeks
 import py_vollib_vectorized # needed for computation
+import numba as nb
+
 
 def gcd_many(s):
     s = [abs(j) for j in s]
@@ -32,6 +34,8 @@ def has_same_form(list1, list2):
             if not has_same_form(item1, item2):
                 return False
     return True
+
+
 def all_positive(l1,l2):
     numbers = [a*b for a,b in zip(l1,l2)]
     for num in numbers:
@@ -52,8 +56,6 @@ def correct_form(list1, list2):
                 return False
     return True
 
-
-
 def calRange(df,daysTillExpir,interval_width = 2):
     close   = df['close']
     minutes = df.Timestamp.diff().values[-1] / np.timedelta64(60, 's')
@@ -73,6 +75,8 @@ def calRange(df,daysTillExpir,interval_width = 2):
 
     return lower0,upper0
 
+
+
 def calculate_price(option, spot_price_1,risk_free_rate = 0.02):
     return bs.black_scholes(option['type'].lower(), spot_price_1, option['strike'], option['expiry'],
                             risk_free_rate,
@@ -84,79 +88,55 @@ def calculate_delta(option, spot_price_1,risk_free_rate = 0.02):
                         risk_free_rate,
                         option['vol'])
 
-def calculate_strategy_expiry_payoff(options, preOption2, map_bs):
+
+def calculate_strategy_expiry_payoff(options, map_bs):
     total_payoff = 0
     for option in options:
-        total_payoff += preOption2[option['type']][option['strike']][map_bs[option['map']] + 'price'] * \
+        total_payoff += option['pre2'][map_bs[option['map']] + 'price'] * \
                         option['quantity']
     return total_payoff
 
 
-def calculate_strategy_net_premium(options, spot_price):
-    total_payoff = 0
+def calculate_strategy_stats(options, map_bs):
+    theta = 0.0
+    gamma = 0.0
+    delta = 0.0
+    vega = 0.0
+    payoff = 0.0
+
     for option in options:
-        total_payoff += option['quantity'] * calculate_price(option, spot_price)
-    return total_payoff
+        temp = option['pre1']
+        map_value = map_bs[option['map']]
+        quantities = option['quantity']
+        theta += temp[map_value + 'theta'] * quantities
+        delta += temp[map_value + 'delta'] * quantities
+        vega += temp[map_value + 'vega'] * quantities
+        gamma += temp[map_value + 'gamma'] * quantities
+        payoff += temp[map_value + 'price'] * quantities
 
+    return delta, vega, theta, gamma, payoff
 
-def calculate_strategy_payoff(options, preOption, map_bs):
-    total_payoff = 0
-    for option in options:
-        total_payoff += preOption[option['type']][option['strike']][map_bs[option['map']] + 'price'] * \
-                        option['quantity']
-    return total_payoff
-
-
-def calculate_strategy_theta(options, preOption, map_bs):
-    total_payoff = 0
-    for option in options:
-        total_payoff += preOption[option['type']][option['strike']][map_bs[option['map']] + 'theta'] * \
-                        option['quantity']
-    return total_payoff
-
-
-def calculate_strategy_delta(options, preOption, map_bs):
-    total_payoff = 0
-    for option in options:
-        total_payoff += preOption[option['type']][option['strike']][map_bs[option['map']] + 'delta'] * \
-                        option['quantity']
-    return total_payoff
-
-
-def calculate_strategy_vega(options, preOption, map_bs):
-    total_payoff = 0
-    for option in options:
-        total_payoff += preOption[option['type']][option['strike']][map_bs[option['map']] + 'vega'] * \
-                        option[
-                            'quantity']
-    return total_payoff
-
-
-def calculate_strategy_gamma(options, preOption, map_bs):
-    total_payoff = 0
-    for option in options:
-        total_payoff += preOption[option['type']][option['strike']][map_bs[option['map']] + 'gamma'] * \
-                        option['quantity']
-    return total_payoff
-
-
-def calculate_strategy_worstBestCase(min_index, max_index, options, preOption):
-    option = options[0]
-    per_ivs = preOption[option['type']][option['strike']]['per_ivs']
-    spot_price = preOption[option['type']][option['strike']]['spot_price']
+def calculate_strategy_worstBestCase(min_index, max_index, options):
+    option = options[0]['pre1']
+    per_ivs = option['per_ivs']
+    spot_price = option['spot_price']
+    days = option['expirys']
     worst_case_vol = per_ivs[min_index]
     worst_case_price = spot_price[min_index]
+    worst_case_days = days[min_index]*365
     best_case_vol = per_ivs[max_index]
     best_case_price = spot_price[max_index]
-    return worst_case_vol, worst_case_price, best_case_vol, best_case_price
-
+    best_case_days = days[max_index]*365
+    return worst_case_vol, worst_case_price, best_case_vol, best_case_price,worst_case_days,best_case_days
 
 def calculate_strategy_premium(options, spot_price):
-    total_payoff = 0
+    net_premium = 0
+    premium = 0
     for option in options:
-        total_payoff += abs(option['quantity']) * calculate_price(option, spot_price)
-    return total_payoff
-
+        quantity = option['quantity']
+        net_premium += abs(quantity) * calculate_price(option, spot_price)
+        premium += quantity * calculate_price(option, spot_price)
+    return premium.values[0][0],net_premium.values[0][0]
 
 def calculate_strategy_delta_starting_point(options, spot_price):
     total_payoff = 0

@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 
 class option_model:
-    def __init__(self, spot_price, strikePrice, preoption, optiontypes=[[1, 1, 1, 1]], tradetypes=None, maxquantity=3):
+    def __init__(self, spot_price, strikePrice, preoption, optiontypes = [[1, 1, 1, 1]], tradetypes = None, maxquantity=3):
 
         """
         this is a class to performe calculation and plotting of option strategy
@@ -192,12 +192,12 @@ class option_model:
             for asset in tqdm(pool.map(self.pool_func, loops), total=len(loops)):
                 paras.extend(asset)
 
-            pool = ThreadPoolExecutor(max_workers=8)
+            pool = ThreadPoolExecutor(max_workers=16)
             res = []
             for asset in tqdm(pool.map(self.model_find_v2, paras), total=len(paras)):
                 res.append(asset)
 
-            df = pd.DataFrame(res, columns=['para', 'stra', 'maxRisk', 'probal', 'RR', 'wv', 'wp', 'bv', 'bp',
+            df = pd.DataFrame(res, columns=['para', 'stra', 'maxRisk', 'probal', 'RR', 'wv', 'wp', 'bv', 'bp','wd','bd',
                                             'delta_starting',
                                             'mean_delta', 'std_delta', 'mean_vega', 'mean_theta', 'std_theta',
                                             'premium']).dropna()
@@ -220,33 +220,29 @@ class option_model:
         map_fu = [1 if qu > 0 else -1 for qu in model_b]
         map_bs = {1: 'buy_', -1: 'sell_'}
         # Define call and put options
-        options = [{'type': type1, 'strike': str1, 'expiry': expiry, 'vol': vol, 'quantity': quty_1, 'map': map_1}
+        options = [{'type': type1, 'strike': str1, 'expiry': expiry, 'vol': vol, 'quantity': quty_1, 'map': map_1,'pre1':preOption[type1][str1],'pre2':preOption2[type1][str1]}
                    for type1, str1, vol, quty_1, map_1, expiry in zip(types, strs, vols, quty, map_fu, expirys)]
 
-        payoffs = np.array(calculate_strategy_expiry_payoff(options, preOption2, map_bs))
-        min_index = np.where(payoffs == min(payoffs))[0][0]
-        max_index = np.where(payoffs == max(payoffs))[0][0]
-        net_premium = calculate_strategy_net_premium(options, spot_price).values[0][0]
-        premium = calculate_strategy_premium(options, spot_price).values[0][0]
+        payoffs = calculate_strategy_expiry_payoff(options, map_bs)
+        premium, net_premium = calculate_strategy_premium(options, spot_price)
+        deltas, vegas, thetas, _, allTimePayoffs = calculate_strategy_stats(options, map_bs)
         profit = len(payoffs[payoffs > net_premium])
         loss = len(payoffs[payoffs < net_premium])
+        min_payoffs = min(payoffs)
         probal = profit / (profit + loss)
         RR = abs(max(payoffs) - net_premium) / abs(net_premium - min(payoffs))
-        deltas = calculate_strategy_delta(options, preOption, map_bs)
-        vegas = calculate_strategy_vega(options, preOption, map_bs)
-        thetas = calculate_strategy_theta(options, preOption, map_bs)
+        allTimePayoffs = list(allTimePayoffs)
+        min_index = allTimePayoffs.index(min(allTimePayoffs))
+        max_index = allTimePayoffs.index(max(allTimePayoffs))
+        wv, wp, bv, bp, wd, bd = calculate_strategy_worstBestCase(min_index, max_index, options)
         delta_starting_point = calculate_strategy_delta_starting_point(options, spot_price).values[0][0]
-        min_payoffs = min(payoffs)
-
-        wv, wp, bv, bp = calculate_strategy_worstBestCase(min_index, max_index, options, preOption)
-
         straSym = '__'.join(
             [map_type[cp] + '_' + str(int(k)) + '_' + str(quty) for k, cp, quty in zip(strs, model, model_b)])
 
         return (
             [spot_price, expirys, strs, vols, model, model_b], straSym,
             abs(min_payoffs - net_premium) / abs(net_premium), probal, RR,
-            wv, wp, bv, bp, abs(delta_starting_point), np.mean([abs(i) for i in deltas]), np.std(deltas),
+            wv, wp, bv, bp, wd, bd, abs(delta_starting_point), np.mean([abs(i) for i in deltas]), np.std(deltas),
             np.mean(vegas),
             np.mean(thetas), np.std(thetas), premium)
 
@@ -270,27 +266,24 @@ class option_model:
         map_bs = {1: 'buy_', -1: 'sell_'}
         map_ba = {1: 'bid_ivs', -1: 'ask_ivs'}
         # Define call and put options
-        options = [{'type': type1, 'strike': str1, 'expiry': expiry, 'vol': vol, 'quantity': quty_1, 'map': map_1}
+        options = [{'type': type1, 'strike': str1, 'expiry': expiry, 'vol': vol, 'quantity': quty_1, 'map': map_1,'pre1':preOption[type1][str1],'pre2':preOption2[type1][str1]}
                    for type1, str1, vol, quty_1, map_1, expiry in zip(types, strs, vols, quty, map_fu, expirys)]
 
-        # prices = [calculate_price(option_1, spot_price) for option_1 in options]
-        payoffs = calculate_strategy_expiry_payoff(options, preOption2, map_bs)
-        net_premium = calculate_strategy_net_premium(options, spot_price).values[0][0]
-        premium = calculate_strategy_premium(options, spot_price).values[0][0]
-        min_payoffs = min(payoffs)
-        deltas = calculate_strategy_delta(options, preOption, map_bs)
-        vegas = calculate_strategy_vega(options, preOption, map_bs)
-        thetas = calculate_strategy_theta(options, preOption, map_bs)
-        min_index = np.where(payoffs == min(payoffs))[0][0]
-        max_index = np.where(payoffs == max(payoffs))[0][0]
+        payoffs = calculate_strategy_expiry_payoff(options, map_bs)
+        premium,net_premium = calculate_strategy_premium(options, spot_price)
+        deltas,vegas,thetas,_,allTimePayoffs = calculate_strategy_stats(options, map_bs)
         profit = len(payoffs[payoffs > net_premium])
         loss = len(payoffs[payoffs < net_premium])
+        min_payoffs = min(payoffs)
         probal = profit / (profit + loss)
         RR = abs(max(payoffs) - net_premium) / abs(net_premium - min(payoffs))
-        wv, wp, bv, bp = calculate_strategy_worstBestCase(min_index, max_index, options, preOption)
+        allTimePayoffs = list(allTimePayoffs)
+        min_index = allTimePayoffs.index(min(allTimePayoffs))
+        max_index = allTimePayoffs.index(max(allTimePayoffs))
+        wv, wp, bv, bp, wd, bd = calculate_strategy_worstBestCase(min_index, max_index, options)
         # Plot strategy metrics
 
-        per_ivs = preOption2[options[0]['type']][options[0]['strike']]['per_ivs']
+        #per_ivs = preOption2[options[0]['type']][options[0]['strike']]['per_ivs']
         spot_per = preOption2[options[0]['type']][options[0]['strike']]['spot_price']
 
         ax = sns.lineplot(x=spot_per, y=payoffs)
@@ -308,10 +301,10 @@ class option_model:
         print('probal ' + str(probal))
         print('lowest possible premium ' + str(min_payoffs))
         print('max risk ' + str(abs(min_payoffs - net_premium) / [abs(net_premium)]))
-        print('worst case, vol: ' + str(wv) + ' price: ' + str(wp))
-        print('best case, vol: ' + str(bv) + ' price: ' + str(bp))
+        print('worst case, vol: ' + str(wv) + ' price: ' + str(wp)+ ' days: ' + str(wd))
+        print('best case, vol: ' + str(bv) + ' price: ' + str(bp)+ ' days: ' + str(bd))
         print('min theta ' + str(min(thetas)))
         print('min vega ' + str(min(vegas)))
         print(straSym)
         # print(temp, time_to_expiry, strs, vols, buy, model, model_b)
-        print(options)
+

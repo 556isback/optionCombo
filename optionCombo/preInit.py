@@ -55,15 +55,25 @@ def Prep(expiryDate, optionDf, priceDf = None, spotPrice = None, interval = 2, B
         option_data = optionDf.loc[
             (optionDf['expiration'] == expiryDate) & (optionDf['K'] <= spotPrice * upperK) & (optionDf['K'] >= spotPrice * lowerK)
         ]
+        tempD = option_data
 
-        option_data['per_ivs'] = option_data['bidIV'].apply(lambda x: list(np.linspace(1 * lowerIV, 1 * upperIV, 89)), 0)
+        option_data['expirys'] = option_data['expiry'].apply(lambda x: list(np.linspace(0, x, 4)), 0)
+        option_data = option_data.explode(['expirys']).reset_index(drop=True)
 
+        temp = pd.DataFrame()
+        option_data['per_ivs'] = option_data['bidIV'].apply(lambda x: list(np.linspace(1 * lowerIV, 1 * upperIV, 5)),0)
+        option_data['askIVs'] = option_data['askIV'].apply(lambda x: list(np.linspace(x * lowerIV, x * upperIV, 5)), 0)
+        option_data['bidIVs'] = option_data['bidIV'].apply(lambda x: list(np.linspace(x * lowerIV, x * upperIV, 5)), 0)
+        temp['askIVs'] = option_data.explode(['askIVs']).reset_index(drop=True)['askIVs']
+        temp['per_ivs'] = option_data.explode(['per_ivs']).reset_index(drop=True)['per_ivs']
+        temp['bidIVs'] = option_data.explode(['bidIVs']).reset_index(drop=True)['bidIVs']
+        option_data = option_data.drop(['askIVs','per_ivs','bidIVs'],axis=1)
 
-        temp = option_data.explode(['per_ivs'])
+        option_data = option_data.join(temp, how='cross')
 
-        joined1 = temp
-        spotPrices = np.linspace(lowerB, upperB, 89)
-        spotPer = np.linspace(1 * lowerB / spotPrice, 1 * upperB / spotPrice, 89)
+        joined1 = option_data
+        spotPrices = np.linspace(lowerB, upperB, 20)
+        spotPer = np.linspace(1 * lowerB / spotPrice, 1 * upperB / spotPrice, 20)
         spotPrices = pd.DataFrame({'spot_price': spotPrices, 'spot_per': spotPer})
 
         joined1 = joined1.join(spotPrices, how='cross')
@@ -71,35 +81,37 @@ def Prep(expiryDate, optionDf, priceDf = None, spotPrice = None, interval = 2, B
         risk_free_rate = 0.02
 
         joined1['buy_price'] = \
-        bs.black_scholes(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expiry'], risk_free_rate,
-                         joined1['askIV']).values.reshape(1, -1)[0]
+        bs.black_scholes(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expirys'], risk_free_rate,
+                         joined1['askIVs']).values.reshape(1, -1)[0]
         joined1['sell_price'] = \
-        bs.black_scholes(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expiry'], risk_free_rate,
-                         joined1['bidIV']).values.reshape(1, -1)[0]
+        bs.black_scholes(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expirys'], risk_free_rate,
+                         joined1['bidIVs']).values.reshape(1, -1)[0]
         joined1['buy_delta'] = \
-        greeks.delta(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expiry'], risk_free_rate,
-                     joined1['askIV']).values.reshape(1, -1)[0]
+        greeks.delta(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expirys'], risk_free_rate,
+                     joined1['askIVs']).values.reshape(1, -1)[0]
         joined1['sell_delta'] = \
-        greeks.delta(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expiry'], risk_free_rate,
-                     joined1['bidIV']).values.reshape(1, -1)[0]
+        greeks.delta(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expirys'], risk_free_rate,
+                     joined1['bidIVs']).values.reshape(1, -1)[0]
         joined1['buy_vega'] = \
-        greeks.vega(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expiry'], risk_free_rate,
-                    joined1['askIV']).values.reshape(1, -1)[0]
+        greeks.vega(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expirys'], risk_free_rate,
+                    joined1['askIVs']).values.reshape(1, -1)[0]
         joined1['sell_vega'] = \
-        greeks.vega(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expiry'], risk_free_rate,
-                    joined1['bidIV']).values.reshape(1, -1)[0]
+        greeks.vega(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expirys'], risk_free_rate,
+                    joined1['bidIVs']).values.reshape(1, -1)[0]
         joined1['buy_gamma'] = \
-        greeks.gamma(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expiry'], risk_free_rate,
-                     joined1['askIV']).values.reshape(1, -1)[0]
+        greeks.gamma(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expirys'], risk_free_rate,
+                     joined1['askIVs']).values.reshape(1, -1)[0]
         joined1['sell_gamma'] = \
-        greeks.gamma(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expiry'], risk_free_rate,
-                     joined1['bidIV']).values.reshape(1, -1)[0]
+        greeks.gamma(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expirys'], risk_free_rate,
+                     joined1['bidIVs']).values.reshape(1, -1)[0]
         joined1['buy_theta'] = \
-        greeks.theta(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expiry'], risk_free_rate,
-                     joined1['askIV']).values.reshape(1, -1)[0]
+        greeks.theta(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expirys'], risk_free_rate,
+                     joined1['askIVs']).values.reshape(1, -1)[0]
         joined1['sell_theta'] = \
-        greeks.theta(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expiry'], risk_free_rate,
-                     joined1['bidIV']).values.reshape(1, -1)[0]
+        greeks.theta(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expirys'], risk_free_rate,
+                     joined1['bidIVs']).values.reshape(1, -1)[0]
+
+        joined1 = joined1.round(4)
 
         preOption1 = {'C': {}, 'P': {}}
         d = list(joined1.groupby('is_call'))
@@ -108,12 +120,12 @@ def Prep(expiryDate, optionDf, priceDf = None, spotPrice = None, interval = 2, B
             for stri in f:
                 tempd = {}
                 for key in ['buy_price', 'sell_price', 'spot_price', 'buy_delta', 'sell_delta', 'buy_vega', 'sell_vega',
-                     'buy_gamma', 'sell_gamma', 'buy_theta', 'sell_theta', 'spot_per', 'per_ivs']:
+                     'buy_gamma', 'sell_gamma', 'buy_theta', 'sell_theta', 'spot_per','per_ivs','expirys']:
                     tempd[key] = stri[1][key].values
                 preOption1[type1[0]][stri[0]] = tempd
 
 
-        joined1 = temp
+        joined1 = tempD
         joined1 = joined1.join(spotPrices, how='cross')
 
         expirys = [0]
@@ -152,6 +164,8 @@ def Prep(expiryDate, optionDf, priceDf = None, spotPrice = None, interval = 2, B
         greeks.theta(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], expirys, risk_free_rate,
                      joined1['bidIV']).values.reshape(1, -1)[0]
 
+        joined1 = joined1.round(4)
+
         preOption2 = {'C': {}, 'P': {}}
         d = list(joined1.groupby('is_call'))
         for type1 in d:
@@ -159,7 +173,7 @@ def Prep(expiryDate, optionDf, priceDf = None, spotPrice = None, interval = 2, B
             for stri in f:
                 tempd = {}
                 for key in ['buy_price', 'sell_price', 'spot_price', 'buy_delta', 'sell_delta', 'buy_vega', 'sell_vega',
-                     'buy_gamma', 'sell_gamma', 'buy_theta', 'sell_theta', 'spot_per', 'per_ivs']:
+                     'buy_gamma', 'sell_gamma', 'buy_theta', 'sell_theta', 'spot_per']:
                     tempd[key] = stri[1][key].values
                 preOption2[type1[0]][stri[0]] = tempd
 

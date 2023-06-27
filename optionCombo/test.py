@@ -17,7 +17,7 @@ pricedata['Timestamp'] = pd.to_datetime(pricedata['Timestamp'])
 pricedata["close"] = pd.to_numeric(pricedata["close"])
 print(pricedata['Timestamp'].diff())
 preOption,joined1,price = preInit.Prep( expirDate, optionDf = option_data, priceDf = pricedata, interval=3, strikePriceRange=0.2)
-model = optionModel.option_model(price, joined1,preOption,optiontypes = [[1,1,1]],tradetypes=[[1,-1,1]], maxquantity=1)  # Init
+model = optionModel.option_model(price, joined1,preOption,optiontypes = [[1,1,1,1]],tradetypes=None, maxquantity=1)  # Init
 df = model.options_model_finder()
 for para in df.para[:1]:
     model.model_plot(para)
