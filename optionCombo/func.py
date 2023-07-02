@@ -5,7 +5,8 @@ import py_vollib.black_scholes as bs
 import py_vollib.black_scholes.greeks.numerical as greeks
 import py_vollib_vectorized # needed for computation
 
-
+import warnings
+warnings.filterwarnings('ignore')
 
 def gcd_many(s):
     s = [abs(j) for j in s]
@@ -127,19 +128,21 @@ def calculate_strategy_worstBestCase(min_index, max_index, options):
     best_case_vol = per_ivs[max_index]
     best_case_price = spot_price[max_index]
     best_case_days = days[max_index]*365
-    return worst_case_vol, worst_case_price, best_case_vol, best_case_price,worst_case_days,best_case_days
+    return worst_case_vol, worst_case_price, best_case_vol, best_case_price, worst_case_days, best_case_days
 
-def calculate_strategy_premium(options, spot_price):
+def calculate_strategy_premium(options, map_bs):
     net_premium = 0
     premium = 0
     for option in options:
         quantity = option['quantity']
-        net_premium += abs(quantity) * calculate_price(option, spot_price)
-        premium += quantity * calculate_price(option, spot_price)
-    return premium.values[0][0],net_premium.values[0][0]
+        map = map_bs[option['map']]
+        premium += abs(quantity) * option['pre4'][map + 'price']
+        net_premium += quantity * option['pre4'][map + 'price']
+    return premium[0],net_premium[0]
 
-def calculate_strategy_delta_starting_point(options, spot_price):
-    total_payoff = 0
+def calculate_strategy_delta_starting_point(options, map_bs):
+    total_delta = 0
     for option in options:
-        total_payoff += option['quantity'] * calculate_delta(option, spot_price)
-    return total_payoff
+        map = map_bs[option['map']]
+        total_delta += option['quantity'] * option['pre4'][map + 'delta']
+    return total_delta[0]

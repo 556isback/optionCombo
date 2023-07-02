@@ -6,7 +6,8 @@ import py_vollib.black_scholes.greeks.numerical as greeks
 import py_vollib_vectorized
 from datetime import datetime , timezone, timedelta
 import numpy as np
-
+import warnings
+warnings.filterwarnings('ignore')
 def Prep(expiryDate, optionDf, priceDf = None, spotPrice = None, interval = 2, Bound = None ,strikePriceRange = 0.3 , impiledVolRange = 0.3 ):
 
     """
@@ -57,13 +58,13 @@ def Prep(expiryDate, optionDf, priceDf = None, spotPrice = None, interval = 2, B
         ]
         tempD = option_data
 
-        option_data['expirys'] = option_data['expiry'].apply(lambda x: list(np.linspace(0, x, 4)), 0)
+        option_data['expirys'] = option_data['expiry'].apply(lambda x: list(np.linspace(0, x, 2)), 0)
         option_data = option_data.explode(['expirys']).reset_index(drop=True)
 
         temp = pd.DataFrame()
-        option_data['per_ivs'] = option_data['bidIV'].apply(lambda x: list(np.linspace(1 * lowerIV, 1 * upperIV, 5)),0)
-        option_data['askIVs'] = option_data['askIV'].apply(lambda x: list(np.linspace(x * lowerIV, x * upperIV, 5)), 0)
-        option_data['bidIVs'] = option_data['bidIV'].apply(lambda x: list(np.linspace(x * lowerIV, x * upperIV, 5)), 0)
+        option_data['per_ivs'] = option_data['bidIV'].apply(lambda x: list(np.linspace(1 * lowerIV, 1 * upperIV, 2)),0)
+        option_data['askIVs'] = option_data['askIV'].apply(lambda x: list(np.linspace(x * lowerIV, x * upperIV, 2)), 0)
+        option_data['bidIVs'] = option_data['bidIV'].apply(lambda x: list(np.linspace(x * lowerIV, x * upperIV, 2)), 0)
         temp['askIVs'] = option_data.explode(['askIVs']).reset_index(drop=True)['askIVs']
         temp['per_ivs'] = option_data.explode(['per_ivs']).reset_index(drop=True)['per_ivs']
         temp['bidIVs'] = option_data.explode(['bidIVs']).reset_index(drop=True)['bidIVs']
@@ -72,8 +73,8 @@ def Prep(expiryDate, optionDf, priceDf = None, spotPrice = None, interval = 2, B
         option_data = option_data.join(temp, how='cross')
 
         joined1 = option_data
-        spotPrices = np.linspace(lowerB, upperB, 20)
-        spotPer = np.linspace(1 * lowerB / spotPrice, 1 * upperB / spotPrice, 20)
+        spotPrices = np.linspace(lowerB, upperB, 30)
+        spotPer = np.linspace(1 * lowerB / spotPrice, 1 * upperB / spotPrice, 30)
         spotPrices = pd.DataFrame({'spot_price': spotPrices, 'spot_per': spotPer})
 
         joined1 = joined1.join(spotPrices, how='cross')
@@ -185,7 +186,61 @@ def Prep(expiryDate, optionDf, priceDf = None, spotPrice = None, interval = 2, B
             for stri in f:
                 preOption3[type1[0]][stri[0]] = stri[1][
                     ['askIV', 'bidIV','expiry']].to_dict('list')
+        spotPricecal = [spotPrice]
 
-        return [preOption1,preOption2,preOption3],joined1['K'].unique(),spotPrice
+        joined1 = tempD
+        #joined1 = joined1.join(spotPrices, how='cross')
+
+        # expirys = pd.DataFrame({'expirys':expirys})
+        # joined1 = joined1.join(expirys,how='cross')
+        risk_free_rate = 0.02
+
+        joined1['buy_price'] = \
+            bs.black_scholes(joined1['is_call'].str.lower(), spotPricecal, joined1['K'], joined1['expiry'],
+                             risk_free_rate,
+                             joined1['askIV']).values.reshape(1, -1)[0]
+        joined1['sell_price'] = \
+            bs.black_scholes(joined1['is_call'].str.lower(), spotPricecal, joined1['K'], joined1['expiry'],
+                             risk_free_rate,
+                             joined1['bidIV']).values.reshape(1, -1)[0]
+        joined1['buy_delta'] = \
+            greeks.delta(joined1['is_call'].str.lower(), spotPricecal, joined1['K'], joined1['expiry'], risk_free_rate,
+                         joined1['askIV']).values.reshape(1, -1)[0]
+        joined1['sell_delta'] = \
+            greeks.delta(joined1['is_call'].str.lower(), spotPricecal, joined1['K'], joined1['expiry'], risk_free_rate,
+                         joined1['bidIV']).values.reshape(1, -1)[0]
+        joined1['buy_vega'] = \
+            greeks.vega(joined1['is_call'].str.lower(), spotPricecal, joined1['K'], joined1['expiry'], risk_free_rate,
+                        joined1['askIV']).values.reshape(1, -1)[0]
+        joined1['sell_vega'] = \
+            greeks.vega(joined1['is_call'].str.lower(), spotPricecal, joined1['K'], joined1['expiry'], risk_free_rate,
+                        joined1['bidIV']).values.reshape(1, -1)[0]
+        joined1['buy_gamma'] = \
+            greeks.gamma(joined1['is_call'].str.lower(), spotPricecal, joined1['K'], joined1['expiry'], risk_free_rate,
+                         joined1['askIV']).values.reshape(1, -1)[0]
+        joined1['sell_gamma'] = \
+            greeks.gamma(joined1['is_call'].str.lower(), spotPricecal, joined1['K'], joined1['expiry'], risk_free_rate,
+                         joined1['bidIV']).values.reshape(1, -1)[0]
+        joined1['buy_theta'] = \
+            greeks.theta(joined1['is_call'].str.lower(), spotPricecal, joined1['K'], joined1['expiry'], risk_free_rate,
+                         joined1['askIV']).values.reshape(1, -1)[0]
+        joined1['sell_theta'] = \
+            greeks.theta(joined1['is_call'].str.lower(), spotPricecal, joined1['K'], joined1['expiry'], risk_free_rate,
+                         joined1['bidIV']).values.reshape(1, -1)[0]
+
+        joined1 = joined1.round(4)
+
+        preOption4 = {'C': {}, 'P': {}}
+        d = list(joined1.groupby('is_call'))
+        for type1 in d:
+            f = list(type1[1].groupby('K'))
+            for stri in f:
+                tempd = {}
+                for key in ['buy_price', 'sell_price', 'buy_delta', 'sell_delta', 'buy_vega', 'sell_vega',
+                            'buy_gamma', 'sell_gamma', 'buy_theta', 'sell_theta']:
+                    tempd[key] = stri[1][key].values
+                preOption4[type1[0]][stri[0]] = tempd
+
+        return [preOption1,preOption2,preOption3,preOption4],joined1['K'].unique(),spotPrice
     else:
         raise ValueError(" incorrect form of price bound")
