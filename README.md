@@ -56,12 +56,10 @@ For a detailed tutorial, please refer to the example file, which includes functi
 
 ## to verify the result
 if you are trading crypto option 
+
 you can use [Greeks.live](https://www.greeks.live/#/deribit/tools/pv/ETH) to verify the result, but its going to require a [Deribit](https://www.deribit.com/?reg=18011.8749&q=home) account to register.
 
-
-
-
-
+In case you get blocked by Greeks.live, as an alternate you can use [Delta Exchange](https://www.delta.exchange/?code=VBQEHF), navigate to their [Strategy Builder](https://www.delta.exchange/optionsdesk?underlying=DELTA%3A.DEXBTUSDT). This tool allows you to construct and visualize different options strategies. 
 
 
 
