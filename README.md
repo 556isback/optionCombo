@@ -2,7 +2,7 @@
 
 ## description
 
-OptionCombo is a powerful library that enables the discovery of all possible option combinations for a single asset. It takes about 8 mins to compute 57k combinations
+OptionCombo is a powerful library that enables the discovery of all possible option combinations for a single asset. It takes about 6 mins to compute 344k combinations
 
 ## limations
 
@@ -37,7 +37,7 @@ preOption, strikes, price = preInit.Prep( expirDate, optionDf = option_data, pri
 
 ### 3. Compute Greeks and Premium of Option Combinations
 
-Next, input the precomputed results into the model finder. Please note that if the number of combinations exceeds 100,000, it may take a considerable amount of time to compute (approximately 120 iterations per second). The function returns a pandas DataFrame containing all the combinations based on the provided parameters. You can filter the results using the statistics provided in the DataFrame:
+Next, input the precomputed results into the model finder. Please note that if the number of combinations exceeds 100,000, it may take a considerable amount of time to compute (approximately 960 iterations per second). The function returns a pandas DataFrame containing all the combinations based on the provided parameters. You can filter the results using the statistics provided in the DataFrame:
 
 ```
 model = optionModel.option_model(price, joined1,preOption,optiontypes = [[1,1,1]],tradetypes=[[1,-1,1]], maxquantity=1)  # Init
