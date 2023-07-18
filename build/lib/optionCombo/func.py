@@ -57,24 +57,7 @@ def correct_form(list1, list2):
                 return False
     return True
 
-def calRange(df,daysTillExpir,interval_width = 2):
-    close   = df['close']
-    minutes = df.Timestamp.diff().values[-1] / np.timedelta64(60, 's')
-    forward = daysTillExpir
-    theta   = 60 * 24 * forward / minutes
-    rolling_len = int(len(close)/4*3)
-    # Expected Range Model
-    df['return'] = close.pct_change().dropna()
-    log_return = df['return']
-    average = log_return.rolling(rolling_len).mean().values[-1]
-    stdev = log_return.rolling(rolling_len).std().values[-1]
-    theta_average = theta * average
-    theta_stdev = stdev * math.sqrt(theta)
-    upper0 = close * math.exp(theta_average + interval_width * theta_stdev)
-    lower0 = close  * math.exp(theta_average - interval_width * theta_stdev)
-    lower0,upper0 = lower0.values[-1],upper0.values[-1]
 
-    return lower0,upper0
 
 
 
@@ -101,21 +84,30 @@ def calculate_strategy_expiry_payoff(options, map_bs):
 def calculate_strategy_stats(options, map_bs):
     theta = 0.0
     gamma = 0.0
-    delta = 0.0
+    #delta = 0.0
     vega = 0.0
     payoff = 0.0
-
     for option in options:
         temp = option['pre1']
         map_value = map_bs[option['map']]
         quantities = option['quantity']
         theta += temp[map_value + 'theta'] * quantities
-        delta += temp[map_value + 'delta'] * quantities
+        #delta += temp[map_value + 'delta'] * quantities
         vega += temp[map_value + 'vega'] * quantities
         gamma += temp[map_value + 'gamma'] * quantities
         payoff += temp[map_value + 'price'] * quantities
 
-    return delta, vega, theta, gamma, payoff
+    return vega, theta, gamma, payoff
+
+def extend_bound_delta(options, map_bs):
+    delta = 0.0
+
+    for option in options:
+        temp = option['pre5']
+        map_value = map_bs[option['map']]
+        quantities = option['quantity']
+        delta += temp[map_value + 'delta'] * quantities
+    return np.mean(delta),np.std(delta)
 
 def calculate_strategy_worstBestCase(min_index, max_index, options):
     option = options[0]['pre1']
@@ -128,7 +120,7 @@ def calculate_strategy_worstBestCase(min_index, max_index, options):
     best_case_vol = per_ivs[max_index]
     best_case_price = spot_price[max_index]
     best_case_days = days[max_index]*365
-    return worst_case_vol, worst_case_price, best_case_vol, best_case_price,worst_case_days,best_case_days
+    return worst_case_vol, worst_case_price, best_case_vol, best_case_price, worst_case_days, best_case_days
 
 def calculate_strategy_premium(options, map_bs):
     net_premium = 0
