@@ -29,10 +29,10 @@ pricedata  # price data (not necessary but used for determining the expected ran
 
 ### 2. Precompute Greeks of Single Option
 
-In this step, you will need to select the expiry date for your option strategy:
+In this step, you will need to select the expiry date and price bound for your option strategy:
 ```
 expirDate = '2023-06-30T00:00:00.000000000' # e.g., choose the desired expiry date
-preOption, strikes, price = preInit.Prep( expirDate, optionDf = option_data, priceDf = pricedata )
+preOption,joined1,price = preInit.Prep(expirDate, optionDf = option_data, spotPrice = spotPrice, Bound = (50, 100))
 ```
 
 ### 3. Compute Greeks and Premium of Option Combinations
@@ -40,7 +40,7 @@ preOption, strikes, price = preInit.Prep( expirDate, optionDf = option_data, pri
 Next, input the precomputed results into the model finder. Please note that if the number of combinations exceeds 100,000, it may take a considerable amount of time to compute (approximately 960 iterations per second). The function returns a pandas DataFrame containing all the combinations based on the provided parameters. You can filter the results using the statistics provided in the DataFrame:
 
 ```
-model = optionModel.option_model(price, joined1,preOption,optiontypes = [[1,1,1]],tradetypes=[[1,-1,1]], maxquantity=1)  # Init
+model = optionModel.option_model(price, joined1, preOption, optiontypes = [[1,1,1]], tradetypes=[[1,-1,1]], maxquantity=1)  # Init
 df = model.options_model_finder()
 ```
 
@@ -58,8 +58,9 @@ For a detailed tutorial, please refer to the example file, which includes functi
 if you are trading crypto option 
 
 you can use [Greeks.live](https://www.greeks.live/#/deribit/tools/pv/ETH) to verify the result, but its going to require a [Deribit](https://www.deribit.com/?reg=18011.8749&q=home) account to register.
+In case you get blocked by Greeks.live, as an alternate you can use [Deribit position builder](https://pb.deribit.com/BTC)
 
-In case you get blocked by Greeks.live, as an alternate you can use [Delta Exchange](https://www.delta.exchange/?code=VBQEHF), navigate to their [Strategy Builder](https://www.delta.exchange/optionsdesk?underlying=DELTA%3A.DEXBTUSDT). This tool allows you to construct and visualize different options strategies. 
+Or you can use [Delta Exchange](https://www.delta.exchange/?code=VBQEHF), navigate to their [Strategy Builder](https://www.delta.exchange/optionsdesk?underlying=DELTA%3A.DEXBTUSDT). This tool allows you to construct and visualize different options strategies. 
 
 
 
