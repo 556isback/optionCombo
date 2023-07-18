@@ -49,6 +49,7 @@ class option_model:
         self.preOption2 = preoption[1]
         self.preOption3 = preoption[2]
         self.preOption4 = preoption[3]
+        self.preOption5 = preoption[4]
         quantityRange = np.array([i + 1 for i in range(maxquantity)])
         quantityRange = np.append(quantityRange, quantityRange * -1)
         self.quantity = quantityRange
@@ -90,7 +91,7 @@ class option_model:
         if len(mn) == 3:
             for stri in combos:
                 stris = [stri[0], stri[1], stri[2]]
-                if stri[0] - stri[1] == stri[1] - stri[2] and stri[0] < self.spot_price and stri[2] > self.spot_price:
+                if stri[0] - stri[1] == stri[1] - stri[2] :
                     map_r = [1 if ab > 0 else -1 for ab in mb]
 
                     vols = [float(self.preOption3[map_cp[m]][stri_temp][map_ab[b]][0]) for stri_temp, m, b in
@@ -102,8 +103,7 @@ class option_model:
 
         if len(mn) == 4:
             for stri in combos:
-                if stri[0] - stri[1] == stri[2] - stri[3] and stri[0] != stri[1] and (
-                        stri[1] < self.spot_price and stri[2] > self.spot_price):
+                if stri[0] - stri[1] == stri[2] - stri[3] and stri[0] != stri[1] :
 
                     stris = [stri[0], stri[1], stri[2], stri[3]]
                     map_r = [1 if ab > 0 else -1 for ab in mb]
@@ -198,7 +198,6 @@ class option_model:
             for para in tqdm(paras):
                 res.append(self.model_find_v2(para))
             df = pd.DataFrame(res, columns=['para', 'stra', 'maxRisk', 'probal', 'RR', 'wv', 'wp', 'bv', 'bp', 'wd','bd',
-                                            'delta_starting',
                                             'mean_delta', 'std_delta', 'mean_vega', 'mean_theta', 'std_theta',
                                             'premium','minReward']).dropna()
 
@@ -213,7 +212,7 @@ class option_model:
 
         spot_price, expirys, strs, vols, model, model_b = paras
 
-        preOption, preOption2,preOption4 = self.preOption, self.preOption2,self.preOption4
+        preOption, preOption2,preOption4,preOption5 = self.preOption, self.preOption2,self.preOption4,self.preOption5
         quty = [1] * len(strs)
         map_type = {1: 'C', -1: 'P'}
         types = [map_type[i] for i in model]
@@ -223,30 +222,35 @@ class option_model:
         # Define call and put options
         options = [{'type': type1, 'strike': str1, 'expiry': expiry, 'vol': vol, 'quantity': quty_1, 'map': map_1,
                     'pre1': preOption[type1][str1], 'pre2': preOption2[type1][str1],
-                    'pre4': preOption4[type1][str1]} for type1, str1, vol, quty_1, map_1, expiry in
+                    'pre4': preOption4[type1][str1],'pre5':preOption5[type1][str1]} for type1, str1, vol, quty_1, map_1, expiry in
                    zip(types, strs, vols, quty, map_fu, expirys)]
 
         payoffs = calculate_strategy_expiry_payoff(options, map_bs)
         premium, net_premium = calculate_strategy_premium(options, map_bs)
-        deltas, vegas, thetas, _, allTimePayoffs = calculate_strategy_stats(options, map_bs)
+        vegas, thetas, _, allTimePayoffs = calculate_strategy_stats(options, map_bs)
+        mean_delta,std_delta = extend_bound_delta(options, map_bs)
         profit = len(payoffs[payoffs > net_premium])
         loss = len(payoffs[payoffs < net_premium])
         min_payoffs = min(allTimePayoffs)
-        probal = profit / (profit + loss)
-        RR = abs(max(payoffs) - net_premium) / abs(net_premium - min(payoffs))
+        try:
+            probal = profit / (profit + loss)
+        except ZeroDivisionError:
+            probal = 0
+
+        RR = abs(max(payoffs) - net_premium) / abs(net_premium - min_payoffs)
         minReward = min(payoffs) - net_premium
         allTimePayoffs = list(allTimePayoffs)
         min_index = allTimePayoffs.index(min(allTimePayoffs))
         max_index = allTimePayoffs.index(max(allTimePayoffs))
         wv, wp, bv, bp, wd, bd = calculate_strategy_worstBestCase(min_index, max_index, options)
-        delta_starting_point = calculate_strategy_delta_starting_point(options, map_bs)
+        #delta_starting_point = calculate_strategy_delta_starting_point(options, map_bs)
         straSym = '__'.join(
             [map_type[cp] + '_' + str(int(k)) + '_' + str(quty) for k, cp, quty in zip(strs, model, model_b)])
 
         return (
             [spot_price, expirys, strs, vols, model, model_b], straSym,
             abs(min_payoffs - net_premium) / abs(net_premium), probal, RR,wv, wp, bv, bp,  wd, bd,
-            abs(delta_starting_point), np.mean([abs(i) for i in deltas]), np.std(deltas),
+             mean_delta , std_delta,
             np.mean(vegas),
             np.mean(thetas), np.std(thetas), premium,minReward)
 
@@ -259,30 +263,29 @@ class option_model:
         """
 
         spot_price, expirys, strs, vols, model, model_b = paras
-        temp = spot_price
-        risk_free_rate = 0.02
-        preOption, preOption2,preOption4 = self.preOption, self.preOption2,self.preOption4
+        preOption, preOption2, preOption4, preOption5 = self.preOption, self.preOption2, self.preOption4, self.preOption5
         quty = [1] * len(strs)
         map_type = {1: 'C', -1: 'P'}
         types = [map_type[i] for i in model]
         quty = [i * j for i, j in zip(quty, model_b)]
         map_fu = [1 if qu > 0 else -1 for qu in model_b]
         map_bs = {1: 'buy_', -1: 'sell_'}
-        map_ba = {1: 'bid_ivs', -1: 'ask_ivs'}
         # Define call and put options
         options = [{'type': type1, 'strike': str1, 'expiry': expiry, 'vol': vol, 'quantity': quty_1, 'map': map_1,
                     'pre1': preOption[type1][str1], 'pre2': preOption2[type1][str1],
-                    'pre4': preOption4[type1][str1]} for type1, str1, vol, quty_1, map_1, expiry in
+                    'pre4': preOption4[type1][str1], 'pre5': preOption5[type1][str1]} for
+                   type1, str1, vol, quty_1, map_1, expiry in
                    zip(types, strs, vols, quty, map_fu, expirys)]
 
         payoffs = calculate_strategy_expiry_payoff(options, map_bs)
         premium, net_premium = calculate_strategy_premium(options, map_bs)
-        deltas, vegas, thetas, _, allTimePayoffs = calculate_strategy_stats(options, map_bs)
+        vegas, thetas, _, allTimePayoffs = calculate_strategy_stats(options, map_bs)
+        mean_delta, std_delta = extend_bound_delta(options, map_bs)
         profit = len(payoffs[payoffs > net_premium])
         loss = len(payoffs[payoffs < net_premium])
         min_payoffs = min(allTimePayoffs)
         probal = profit / (profit + loss)
-        RR = abs(max(payoffs) - net_premium) / abs(net_premium - min(payoffs))
+        RR = abs(max(payoffs) - net_premium) / abs(net_premium - min_payoffs)
         allTimePayoffs = list(allTimePayoffs)
         min_index = allTimePayoffs.index(min(allTimePayoffs))
         max_index = allTimePayoffs.index(max(allTimePayoffs))
@@ -307,8 +310,9 @@ class option_model:
         print('probal ' + str(probal))
         print('lowest possible premium ' + str(min_payoffs))
         print('max risk ' + str((abs(min_payoffs - net_premium) / [abs(net_premium)])[0]))
-        print('worst case, vol: ' + str(wv) + ' price: ' + str(wp) +' days: ' + str(wd))
-        print('best case, vol: ' + str(bv) + ' price: ' + str(bp) +' days: ' + str(bd))
+        print('worst case, vol: ' + str(wv) + ' price: ' + str(wp) +' daysTillExpir: ' + str(wd))
+        print('best case, vol: ' + str(bv) + ' price: ' + str(bp) +' daysTillExpir: ' + str(bd))
+        print('mean delta' + str(mean_delta))
         print('min theta ' + str(min(thetas)))
         print('min vega ' + str(min(vegas)))
         print(straSym)
