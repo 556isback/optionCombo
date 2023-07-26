@@ -157,32 +157,14 @@ class option_model:
         model_n, model_b = zip(*temp)
 
         if model_n and model_b:
+            len_n = list(set(list(map(len, model_n))))
             unique_k = self.strikePrice
 
-            combos_2 = [(stri_1, stri_2) for stri_1 in unique_k
-                        for stri_2 in unique_k
-                        if np.all(np.diff([stri_1, stri_2]) >= 0)]
-            combos_3 = [(stri_1, stri_2, stri_3) for stri_1 in unique_k
-                        for stri_2 in unique_k
-                        for stri_3 in unique_k
-                        if np.all(np.diff([stri_1, stri_2, stri_3]) >= 0)]
-            combos_4 = [(stri_1, stri_2, stri_3, stri_4) for stri_1 in unique_k
-                        for stri_2 in unique_k
-                        for stri_3 in unique_k
-                        for stri_4 in unique_k
-                        if np.all(np.diff([stri_1, stri_2, stri_3, stri_4]) >= 0)]
+            combos = {n:get_combinations(unique_k, n) for n in len_n }
 
             loops = []
             for mn, mb in zip(model_n, model_b):
-                if len(mn) == 1:
-                    pass
-                    # loops.append([mn, mb, unique_k.reshape(-1, 1)])
-                elif len(mn) == 2:
-                    loops.append([mn, mb, combos_2])
-                elif len(mn) == 3:
-                    loops.append([mn, mb, combos_3])
-                elif len(mn) == 4:
-                    loops.append([mn, mb, combos_4])
+                loops.append([mn, mb, combos[len(mn)]])
 
             #pool = ThreadPoolExecutor(max_workers=8)
             paras = []
