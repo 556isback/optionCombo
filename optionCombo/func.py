@@ -9,20 +9,16 @@ import warnings
 warnings.filterwarnings('ignore')
 
 def gcd_many(s):
-    s = [abs(j) for j in s]
-    g = 0
-    for i in range(len(s)):
-        if i == 0:
-            g = s[i]
-        else:
-            g=math.gcd(g,s[i])
-
-    return g
+    s = np.abs(s)
+    return np.gcd.reduce(s)
 
 def is_two_dimensional(lst):
     if isinstance(lst, list):
         return all(isinstance(elem, list) for elem in lst)
     return False
+
+def get_combinations(k_list, n):
+    return [combo for combo in itertools.combinations(k_list, n) if all(combo[i] <= combo[i+1] for i in range(n-1))]
 
 def has_same_form(list1, list2):
     if len(list1) != len(list2):
