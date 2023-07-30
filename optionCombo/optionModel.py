@@ -68,18 +68,8 @@ class option_model:
         map_ab = {1: 'askIV', -1: 'bidIV'}
         res = []
 
-        '''if len(mn) == 1:   
-            combos_2 = mnmb[2]
-            for stri in combos_2:
-                map_r = [1 if ab > 0 else -1 for ab in mb ]
-
-                vols = float(df.loc[(df['K'] == stri[0]) & (df['option_type'] == map_cp[mn[0]])][map_ab[map_r[0]]].values/100) 
-                if min(vols) > 0:
-                    res.append(model_find_v2(spot_price, expir, stris, [vols], True, mn, mb))'''
-
         if len(mn) == 2:
-            for stri in combos:
-                stris = [stri[0], stri[1]]
+            for stris in combos:
                 map_r = [1 if ab > 0 else -1 for ab in mb]
                 vols = [float(self.preOption3[map_cp[m]][stri_temp][map_ab[b]][0]) for stri_temp, m, b in
                         zip(stris, mn, map_r)]
@@ -88,10 +78,9 @@ class option_model:
                 if min(vols) > 0:
                     res.append([self.spot_price, expirys, stris, vols, mn, mb])
 
-        if len(mn) == 3:
-            for stri in combos:
-                stris = [stri[0], stri[1], stri[2]]
-                if stri[0] - stri[1] == stri[1] - stri[2] :
+        if len(mn) > 2:
+            for stris in combos:
+                if is_symmetric_arithmetic_sequence(stris):
                     map_r = [1 if ab > 0 else -1 for ab in mb]
 
                     vols = [float(self.preOption3[map_cp[m]][stri_temp][map_ab[b]][0]) for stri_temp, m, b in
@@ -101,19 +90,6 @@ class option_model:
                     if min(vols) > 0:
                         res.append([self.spot_price, expirys, stris, vols, mn, mb])
 
-        if len(mn) == 4:
-            for stri in combos:
-                if stri[0] - stri[1] == stri[2] - stri[3] and stri[0] != stri[1] :
-
-                    stris = [stri[0], stri[1], stri[2], stri[3]]
-                    map_r = [1 if ab > 0 else -1 for ab in mb]
-
-                    vols = [float(self.preOption3[map_cp[m]][stri_temp][map_ab[b]][0]) for stri_temp, m, b in
-                            zip(stris, mn, map_r)]
-                    expirys = [self.preOption3[map_cp[m]][stri_temp]['expiry'][0] for stri_temp, m, b in
-                               zip(stris, mn, map_r)]
-                    if min(vols) > 0:
-                        res.append([self.spot_price, expirys, stris, vols, mn, mb])
 
         return res
 
