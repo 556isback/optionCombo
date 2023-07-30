@@ -1,7 +1,0 @@
-matplotlib
-numpy
-pandas
-py_vollib
-py_vollib_vectorized
-seaborn
-tqdm
