@@ -68,18 +68,8 @@ class option_model:
         map_ab = {1: 'askIV', -1: 'bidIV'}
         res = []
 
-        '''if len(mn) == 1:   
-            combos_2 = mnmb[2]
-            for stri in combos_2:
-                map_r = [1 if ab > 0 else -1 for ab in mb ]
-
-                vols = float(df.loc[(df['K'] == stri[0]) & (df['option_type'] == map_cp[mn[0]])][map_ab[map_r[0]]].values/100) 
-                if min(vols) > 0:
-                    res.append(model_find_v2(spot_price, expir, stris, [vols], True, mn, mb))'''
-
         if len(mn) == 2:
-            for stri in combos:
-                stris = [stri[0], stri[1]]
+            for stris in combos:
                 map_r = [1 if ab > 0 else -1 for ab in mb]
                 vols = [float(self.preOption3[map_cp[m]][stri_temp][map_ab[b]][0]) for stri_temp, m, b in
                         zip(stris, mn, map_r)]
@@ -88,10 +78,9 @@ class option_model:
                 if min(vols) > 0:
                     res.append([self.spot_price, expirys, stris, vols, mn, mb])
 
-        if len(mn) == 3:
-            for stri in combos:
-                stris = [stri[0], stri[1], stri[2]]
-                if stri[0] - stri[1] == stri[1] - stri[2] :
+        if len(mn) > 2:
+            for stris in combos:
+                if is_symmetric_arithmetic_sequence(stris):
                     map_r = [1 if ab > 0 else -1 for ab in mb]
 
                     vols = [float(self.preOption3[map_cp[m]][stri_temp][map_ab[b]][0]) for stri_temp, m, b in
@@ -101,19 +90,6 @@ class option_model:
                     if min(vols) > 0:
                         res.append([self.spot_price, expirys, stris, vols, mn, mb])
 
-        if len(mn) == 4:
-            for stri in combos:
-                if stri[0] - stri[1] == stri[2] - stri[3] and stri[0] != stri[1] :
-
-                    stris = [stri[0], stri[1], stri[2], stri[3]]
-                    map_r = [1 if ab > 0 else -1 for ab in mb]
-
-                    vols = [float(self.preOption3[map_cp[m]][stri_temp][map_ab[b]][0]) for stri_temp, m, b in
-                            zip(stris, mn, map_r)]
-                    expirys = [self.preOption3[map_cp[m]][stri_temp]['expiry'][0] for stri_temp, m, b in
-                               zip(stris, mn, map_r)]
-                    if min(vols) > 0:
-                        res.append([self.spot_price, expirys, stris, vols, mn, mb])
 
         return res
 
@@ -157,32 +133,14 @@ class option_model:
         model_n, model_b = zip(*temp)
 
         if model_n and model_b:
+            len_n = list(set(list(map(len, model_n))))
             unique_k = self.strikePrice
 
-            combos_2 = [(stri_1, stri_2) for stri_1 in unique_k
-                        for stri_2 in unique_k
-                        if np.all(np.diff([stri_1, stri_2]) >= 0)]
-            combos_3 = [(stri_1, stri_2, stri_3) for stri_1 in unique_k
-                        for stri_2 in unique_k
-                        for stri_3 in unique_k
-                        if np.all(np.diff([stri_1, stri_2, stri_3]) >= 0)]
-            combos_4 = [(stri_1, stri_2, stri_3, stri_4) for stri_1 in unique_k
-                        for stri_2 in unique_k
-                        for stri_3 in unique_k
-                        for stri_4 in unique_k
-                        if np.all(np.diff([stri_1, stri_2, stri_3, stri_4]) >= 0)]
+            combos = {n:get_combinations(unique_k, n) for n in len_n }
 
             loops = []
             for mn, mb in zip(model_n, model_b):
-                if len(mn) == 1:
-                    pass
-                    # loops.append([mn, mb, unique_k.reshape(-1, 1)])
-                elif len(mn) == 2:
-                    loops.append([mn, mb, combos_2])
-                elif len(mn) == 3:
-                    loops.append([mn, mb, combos_3])
-                elif len(mn) == 4:
-                    loops.append([mn, mb, combos_4])
+                loops.append([mn, mb, combos[len(mn)]])
 
             #pool = ThreadPoolExecutor(max_workers=8)
             paras = []

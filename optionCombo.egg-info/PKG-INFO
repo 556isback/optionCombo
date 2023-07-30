@@ -1,9 +1,0 @@
-Metadata-Version: 2.1
-Name: optionCombo
-Version: 0.1.3
-Summary: this is a library for finding all the possible option combinations of a single asset.
-Home-page: https://github.com/556isback/optionCombo
-Author: ZHI LIANG CHEN
-Author-email: theon556isback@gmail.com
-License: MIT
-License-File: LICENSE
