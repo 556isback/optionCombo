@@ -4,7 +4,7 @@ import math
 import py_vollib.black_scholes as bs
 import py_vollib.black_scholes.greeks.numerical as greeks
 import py_vollib_vectorized # needed for computation
-
+import itertools
 import warnings
 warnings.filterwarnings('ignore')
 
