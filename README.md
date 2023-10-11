@@ -4,6 +4,10 @@
 
 OptionCombo is a powerful library that enables the discovery of all possible option combinations for a single asset. It takes about 6 mins to compute 344k combinations
 
+## to-do
+
+Add futures into combinations calculation
+
 ## limations
 
 Currently, OptionCombo supports the identification of strategies consisting of two to four option combinations with the same expiry date.
