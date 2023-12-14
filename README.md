@@ -10,9 +10,9 @@ Add futures into combinations calculation :heavy_check_mark:
 
 ## limations
 
-Currently, OptionCombo supports the identification of strategies consisting of two to four option combinations with the same expiry date.
+OptionCombo currently facilitates the identification of strategies comprising one to four option combinations with the same expiry date, and now includes the capability to integrate future contracts into these combinations.
 
-Please note that OptionCombo is designed exclusively for computation purposes. It does not include a method for downloading option data. However, we have included a function in the example file that facilitates downloading and formatting data, serving as a helpful starting point.
+Please note that OptionCombo is designed exclusively for computation purposes. It does not include a method for downloading option data nor making financial decision for you. However, the example provided have included a function facilitates downloading and formatting data, and demostration to use this library.
 
 ## usage
 
