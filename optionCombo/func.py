@@ -128,7 +128,7 @@ def extend_bound_delta(options, map_bs):
         temp = option['pre5']
         map_value = map_bs[option['map']]
         quantities = option['quantity']
-        delta += temp[map_value + 'price'] * quantities
+        delta += temp[map_value + 'delta'] * quantities
     return np.mean(delta),np.std(delta)
 
 def calculate_strategy_worstBestCase(min_index, max_index, options):
