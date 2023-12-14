@@ -6,7 +6,7 @@ OptionCombo is a powerful library that enables the discovery of all possible opt
 
 ## to-do
 
-Add futures into combinations calculation
+Add futures into combinations calculation :heavy_check_mark:
 
 ## limations
 
