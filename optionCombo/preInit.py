@@ -89,6 +89,9 @@ def Prep(expiryDate, optionDf, spotPrice = None, Bound = None, BoundExtend = 1.2
         joined1 = option_data
 
         spotPrices = np.linspace(lowerB, upperB, 30)
+
+        coin_futures_values = spotPrices
+
         spotPer = np.linspace(1 * lowerB / spotPrice, 1 * upperB / spotPrice, 30)
         spotPrices = pd.DataFrame({'spot_price': spotPrices, 'spot_per': spotPer})
 
@@ -135,7 +138,7 @@ def Prep(expiryDate, optionDf, spotPrice = None, Bound = None, BoundExtend = 1.2
             f = list(type1[1].groupby('K'))
             for stri in f:
                 tempd = {}
-                for key in ['buy_price', 'sell_price', 'spot_price', 'buy_delta', 'sell_delta', 'buy_vega', 'sell_vega',
+                for key in ['buy_price', 'sell_price', 'spot_price', 'buy_delta', 'sell_delta', 'buy_vega', 'sell_vega','spot_price',
                      'buy_gamma', 'sell_gamma', 'buy_theta', 'sell_theta', 'spot_per','per_ivs','expirys']:
                     tempd[key] = stri[1][key].values
                 preOption1[type1[0]][stri[0]] = tempd
@@ -259,11 +262,15 @@ def Prep(expiryDate, optionDf, spotPrice = None, Bound = None, BoundExtend = 1.2
         joined1 = option_data
 
         spotPrices = np.linspace(lowerB*(2-BoundExtend), upperB*BoundExtend, 40)
+
+        coin_futures_values_extend = spotPrices
+
         spotPer = np.linspace(1 * lowerB / spotPrice, 1 * upperB / spotPrice, 40)
         spotPrices = pd.DataFrame({'spot_price': spotPrices, 'spot_per': spotPer})
 
-        joined1 = joined1.join(spotPrices, how='cross')
+        expirys = [0]
 
+        joined1 = joined1.join(spotPrices, how='cross')
         risk_free_rate = 0.02
 
         joined1['buy_delta'] = \
@@ -274,7 +281,14 @@ def Prep(expiryDate, optionDf, spotPrice = None, Bound = None, BoundExtend = 1.2
             greeks.delta(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expirys'],
                          risk_free_rate,
                          joined1['bidIVs']).values.reshape(1, -1)[0]
-
+        joined1['buy_price'] = \
+            bs.black_scholes(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expirys'],
+                         risk_free_rate,
+                         joined1['askIVs']).values.reshape(1, -1)[0]
+        joined1['sell_price'] = \
+            bs.black_scholes(joined1['is_call'].str.lower(), joined1['spot_price'], joined1['K'], joined1['expirys'],
+                         risk_free_rate,
+                         joined1['bidIVs']).values.reshape(1, -1)[0]
 
         joined1 = joined1.round(4)
 
@@ -284,10 +298,10 @@ def Prep(expiryDate, optionDf, spotPrice = None, Bound = None, BoundExtend = 1.2
             f = list(type1[1].groupby('K'))
             for stri in f:
                 tempd = {}
-                for key in ['buy_delta', 'sell_delta']:
+                for key in ['buy_delta', 'sell_delta','buy_price','sell_price']:
                     tempd[key] = stri[1][key].values
                 preOption5[type1[0]][stri[0]] = tempd
 
-        return [preOption1,preOption2,preOption3,preOption4,preOption5],joined1['K'].unique(),spotPrice
+        return [preOption1,preOption2,preOption3,preOption4,preOption5,coin_futures_values,coin_futures_values_extend],joined1['K'].unique(),spotPrice
     else:
         raise ValueError(" incorrect form of price bound")
