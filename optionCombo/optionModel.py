@@ -10,7 +10,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 class option_model:
-    def __init__(self, spot_price, strikePrice, preoption, optiontypes = [[1, 1, 1, 1]], tradetypes = None, maxquantity=3):
+    def __init__(self, spot_price, strikePrice, preoption, optiontypes = [[1, 1, 1, 1]], includeFutures = False, tradetypes = None, maxquantity=3):
 
         """
         this is a class to performe calculation and plotting of option strategy
@@ -29,7 +29,7 @@ class option_model:
         if not is_two_dimensional(optiontypes) or not optiontypes:
             raise ValueError('incorrect form, eg. [[1,1,1]] or [[1,1,1],[1,-1,1]] when opt for multiple types of stra')
         for arr in optiontypes:
-            if len(arr) < 5 and len(arr) > 1:
+            if len(arr) < 5 and len(arr) > 0:
                 if sum(map(abs, arr)) == len(arr):
                     pass
                 else:
@@ -50,6 +50,14 @@ class option_model:
         self.preOption3 = preoption[2]
         self.preOption4 = preoption[3]
         self.preOption5 = preoption[4]
+        if not includeFutures :
+            self.addFutures = False
+            self.futures = []
+            self.futures_extend = []
+        else:
+            self.addFutures = True
+            self.futures = preoption[5]
+            self.futures_extend = preoption[6]
         quantityRange = np.array([i + 1 for i in range(maxquantity)])
         quantityRange = np.append(quantityRange, quantityRange * -1)
         self.quantity = quantityRange
@@ -63,32 +71,44 @@ class option_model:
         :return: combinations of option strategy
         """
 
-        mn, mb, combos = mnmb
+        mn, mb, combos, fb = mnmb
         map_cp = {1: 'C', -1: 'P'}
         map_ab = {1: 'askIV', -1: 'bidIV'}
         res = []
-
-        if len(mn) == 2:
-            for stris in combos:
+        for stris in combos:
+            try:
                 map_r = [1 if ab > 0 else -1 for ab in mb]
                 vols = [float(self.preOption3[map_cp[m]][stri_temp][map_ab[b]][0]) for stri_temp, m, b in
                         zip(stris, mn, map_r)]
                 expirys = [self.preOption3[map_cp[m]][stri_temp]['expiry'][0] for stri_temp, m, b in
                            zip(stris, mn, map_r)]
                 if min(vols) > 0:
-                    res.append([self.spot_price, expirys, stris, vols, mn, mb])
-
-        if len(mn) > 2:
+                    res.append([self.spot_price, expirys, stris, vols, mn, mb, fb])
+            except:
+                pass
+        '''if len(mn) == 2:
             for stris in combos:
-                if is_symmetric_arithmetic_sequence(stris):
+                try:
                     map_r = [1 if ab > 0 else -1 for ab in mb]
-
                     vols = [float(self.preOption3[map_cp[m]][stri_temp][map_ab[b]][0]) for stri_temp, m, b in
                             zip(stris, mn, map_r)]
                     expirys = [self.preOption3[map_cp[m]][stri_temp]['expiry'][0] for stri_temp, m, b in
                                zip(stris, mn, map_r)]
                     if min(vols) > 0:
-                        res.append([self.spot_price, expirys, stris, vols, mn, mb])
+                        res.append([self.spot_price, expirys, stris, vols, mn, mb, fb])
+                except: pass
+
+        if len(mn) > 2:
+            for stris in combos:
+                if is_symmetric_arithmetic_sequence(stris):
+                        map_r = [1 if ab > 0 else -1 for ab in mb]
+
+                        vols = [float(self.preOption3[map_cp[m]][stri_temp][map_ab[b]][0]) for stri_temp, m, b in
+                                zip(stris, mn, map_r)]
+                        expirys = [self.preOption3[map_cp[m]][stri_temp]['expiry'][0] for stri_temp, m, b in
+                                   zip(stris, mn, map_r)]
+                        if min(vols) > 0:
+                            res.append([self.spot_price, expirys, stris, vols, mn, mb, fb])'''
 
 
         return res
@@ -110,37 +130,62 @@ class option_model:
                     arr1 = [arr1]
                 k = quantity
                 # generate all possible combinations of the integers
-                combinations = itertools.product(k, repeat=len(arr))
+                if self.addFutures== False:
+                    combinations = itertools.product(k, repeat=len(arr))
+                else:
+                    combinations = itertools.product(k, repeat=len(arr)+1)
                 for com in combinations:
                     for form in arr1:
                         if all_positive(com, form) > 0:
+
                             cDivisor = gcd_many(com)
                             tempRe = tuple(np.array(com) / cDivisor)
-                            repeat = [arr, tempRe] in temp
+                            if self.addFutures == False:
+                                futures_com = 0
+                            else:
+                                futures_com = tempRe[-1]
+                                tempRe = tempRe[:-1]
+                            repeat = [arr, tempRe, futures_com] in temp
                             if not repeat:
-                                temp.append([arr, com])
+                                if self.addFutures == False:
+                                    futures_com = 0
+                                else:
+                                    futures_com = com[-1]
+                                    com = com[:-1]
+                                temp.append([arr, com, futures_com])
         else:
             for arr in optiontypes:
                 k = quantity
                 # generate all possible combinations of the integers
-                combinations = itertools.product(k, repeat=len(arr))
+                if self.addFutures == False:
+                    combinations = itertools.product(k, repeat=len(arr))
+                else:
+                    combinations = itertools.product(k, repeat=len(arr) + 1)
                 for com in combinations:
                     cDivisor = gcd_many(com)
                     tempRe = tuple(np.array(com) / cDivisor)
-                    repeat = [arr, tempRe] in temp
+                    if self.addFutures == False:
+                        futures_com = 0
+                    else:
+                        futures_com = tempRe[-1]
+                        tempRe = tempRe[:-1]
+                    repeat = [arr, tempRe, futures_com] in temp
                     if not repeat:
-                        temp.append([arr, com])
-        model_n, model_b = zip(*temp)
+                        if self.addFutures == False:
+                            futures_com = 0
+                        else:
+                            futures_com = com[-1]
+                            com = com[:-1]
+                        temp.append([arr, com, futures_com])
+        model_n, model_b, futures_b = zip(*temp)
 
         if model_n and model_b:
             len_n = list(set(list(map(len, model_n))))
             unique_k = self.strikePrice
-
             combos = {n:get_combinations(unique_k, n) for n in len_n }
-
             loops = []
-            for mn, mb in zip(model_n, model_b):
-                loops.append([mn, mb, combos[len(mn)]])
+            for mn, mb, fb in zip(model_n, model_b, futures_b):
+                loops.append([mn, mb, combos[len(mn)], fb])
 
             #pool = ThreadPoolExecutor(max_workers=8)
             paras = []
@@ -155,7 +200,7 @@ class option_model:
             res = []
             for para in tqdm(paras):
                 res.append(self.model_find_v2(para))
-            df = pd.DataFrame(res, columns=['para', 'stra', 'maxRisk', 'probal', 'RR', 'wv', 'wp', 'bv', 'bp', 'wd','bd',
+            df = pd.DataFrame(res, columns=['para', 'stra', 'maxRisk', 'probal', 'RR', 'wv', 'wp', 'bv', 'bp', 'wd','bd','loss_extended_std',
                                             'mean_delta', 'std_delta', 'mean_vega', 'mean_theta', 'std_theta',
                                             'premium','minReward']).dropna()
 
@@ -168,9 +213,12 @@ class option_model:
         :return:
         """
 
-        spot_price, expirys, strs, vols, model, model_b = paras
+        spot_price, expirys, strs, vols, model, model_b, futures_b = paras
 
         preOption, preOption2,preOption4,preOption5 = self.preOption, self.preOption2,self.preOption4,self.preOption5
+        futures_pnl = [(ele - spot_price) * futures_b for ele in self.futures]
+        futures_pnl_extend = [(ele - spot_price) * futures_b for ele in self.futures_extend]
+
         quty = [1] * len(strs)
         map_type = {1: 'C', -1: 'P'}
         types = [map_type[i] for i in model]
@@ -184,9 +232,20 @@ class option_model:
                    zip(types, strs, vols, quty, map_fu, expirys)]
 
         payoffs = calculate_strategy_expiry_payoff(options, map_bs)
+
+        if futures_b != 0:
+            payoffs = np.add(payoffs, futures_pnl)
+
         premium, net_premium = calculate_strategy_premium(options, map_bs)
-        vegas, thetas, _, allTimePayoffs = calculate_strategy_stats(options, map_bs)
+        vegas, thetas, _, allTimePayoffs = calculate_strategy_stats(options, map_bs, futures_b, spot_price, self.addFutures)
         mean_delta,std_delta = extend_bound_delta(options, map_bs)
+
+        extended_payoffs = extend_bound_payoffs(options, map_bs)
+        if futures_b != 0:
+            futures_pnl_extend = np.tile(futures_pnl_extend, int(len(extended_payoffs) / len(futures_pnl_extend)))
+            extended_payoffs = np.add(extended_payoffs, futures_pnl_extend)
+        loss_extended_std = extended_payoffs[extended_payoffs < net_premium].std()
+
         profit = len(payoffs[payoffs > net_premium])
         loss = len(payoffs[payoffs < net_premium])
         min_payoffs = min(allTimePayoffs)
@@ -195,7 +254,7 @@ class option_model:
         except ZeroDivisionError:
             probal = 0
 
-        RR = abs(max(payoffs) - net_premium) / abs(net_premium - min_payoffs)
+        RR = (np.mean(payoffs) - net_premium)/premium
         minReward = min(payoffs) - net_premium
         allTimePayoffs = list(allTimePayoffs)
         min_index = allTimePayoffs.index(min(allTimePayoffs))
@@ -204,10 +263,10 @@ class option_model:
         #delta_starting_point = calculate_strategy_delta_starting_point(options, map_bs)
         straSym = '__'.join(
             [map_type[cp] + '_' + str(int(k)) + '_' + str(quty) for k, cp, quty in zip(strs, model, model_b)])
-
+        straSym += '__' + str(futures_b) + '-FU'
         return (
-            [spot_price, expirys, strs, vols, model, model_b], straSym,
-            abs(min_payoffs - net_premium) / abs(net_premium), probal, RR,wv, wp, bv, bp,  wd, bd,
+            [spot_price, expirys, strs, vols, model, model_b, futures_b], straSym,
+            abs(min_payoffs - net_premium) / abs(net_premium), probal, RR,wv, wp, bv, bp,  wd, bd,loss_extended_std,
              mean_delta , std_delta,
             np.mean(vegas),
             np.mean(thetas), np.std(thetas), premium,minReward)
@@ -220,8 +279,10 @@ class option_model:
         :return:
         """
 
-        spot_price, expirys, strs, vols, model, model_b = paras
+        spot_price, expirys, strs, vols, model, model_b, futures_b = paras
         preOption, preOption2, preOption4, preOption5 = self.preOption, self.preOption2, self.preOption4, self.preOption5
+        futures_pnl = [(ele - spot_price) * futures_b for ele in self.futures]
+        futures_pnl_extend = [(ele - spot_price) * futures_b for ele in self.futures_extend]
         quty = [1] * len(strs)
         map_type = {1: 'C', -1: 'P'}
         types = [map_type[i] for i in model]
@@ -236,19 +297,27 @@ class option_model:
                    zip(types, strs, vols, quty, map_fu, expirys)]
 
         payoffs = calculate_strategy_expiry_payoff(options, map_bs)
+        if futures_b != 0:
+            payoffs = np.add(payoffs, futures_pnl)
         premium, net_premium = calculate_strategy_premium(options, map_bs)
-        vegas, thetas, _, allTimePayoffs = calculate_strategy_stats(options, map_bs)
+        #vegas, thetas, _, allTimePayoffs = calculate_strategy_stats(options, map_bs)
+        vegas, thetas, _, allTimePayoffs = calculate_strategy_stats(options, map_bs, futures_b, spot_price, self.addFutures)
         mean_delta, std_delta = extend_bound_delta(options, map_bs)
         profit = len(payoffs[payoffs > net_premium])
         loss = len(payoffs[payoffs < net_premium])
         min_payoffs = min(allTimePayoffs)
         probal = profit / (profit + loss)
-        RR = abs(max(payoffs) - net_premium) / abs(net_premium - min_payoffs)
+        RR = (np.mean(payoffs) - net_premium)/premium
         allTimePayoffs = list(allTimePayoffs)
         min_index = allTimePayoffs.index(min(allTimePayoffs))
         max_index = allTimePayoffs.index(max(allTimePayoffs))
         wv, wp, bv, bp, wd, bd = calculate_strategy_worstBestCase(min_index, max_index, options)
         # Plot strategy metrics
+        extended_payoffs = extend_bound_payoffs(options, map_bs)
+        if futures_b != 0:
+            futures_pnl_extend = np.tile(futures_pnl_extend, int(len(extended_payoffs) / len(futures_pnl_extend)))
+            extended_payoffs = np.add(extended_payoffs, futures_pnl_extend)
+        loss_extended_std = extended_payoffs[extended_payoffs < net_premium].std()
 
         #per_ivs = preOption2[options[0]['type']][options[0]['strike']]['per_ivs']
         spot_per = preOption2[options[0]['type']][options[0]['strike']]['spot_price']
@@ -261,6 +330,7 @@ class option_model:
         plt.show()
         straSym = '__'.join(
             [map_type[cp] + '_' + str(int(k)) + '_' + str(quty) for k, cp, quty in zip(strs, model, model_b)])
+        straSym += '__'+str(futures_b)+'-FU'
         # print(prices)
         print('net premium ' + str(net_premium))
         print('premium ' + str(premium))
@@ -268,6 +338,7 @@ class option_model:
         print('probal ' + str(probal))
         print('lowest possible premium ' + str(min_payoffs))
         print('max risk ' + str((abs(min_payoffs - net_premium) / [abs(net_premium)])[0]))
+        print('loss std' + str(loss_extended_std))
         print('worst case, vol: ' + str(wv) + ' price: ' + str(wp) +' daysTillExpir: ' + str(wd))
         print('best case, vol: ' + str(bv) + ' price: ' + str(bp) +' daysTillExpir: ' + str(bd))
         print('mean delta' + str(mean_delta))

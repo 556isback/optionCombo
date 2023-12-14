@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='optionCombo',
-    version='0.1.3',
+    version='0.2.0',
     description='this is a library for finding all the possible option combinations of a single asset.',
     url='https://github.com/556isback/optionCombo',
     author='ZHI LIANG CHEN',
