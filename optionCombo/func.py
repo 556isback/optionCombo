@@ -4,7 +4,7 @@ import math
 import py_vollib.black_scholes as bs
 import py_vollib.black_scholes.greeks.numerical as greeks
 import py_vollib_vectorized # needed for computation
-
+import itertools
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -18,6 +18,7 @@ def is_two_dimensional(lst):
     return False
 
 def get_combinations(k_list, n):
+    k_list = sorted(k_list)
     return [combo for combo in itertools.combinations(k_list, n) if all(combo[i] <= combo[i+1] for i in range(n-1))]
 
 def is_symmetric_arithmetic_sequence(lst):
@@ -89,9 +90,17 @@ def calculate_strategy_expiry_payoff(options, map_bs):
         total_payoff += option['pre2'][map_bs[option['map']] + 'price'] * \
                         option['quantity']
     return total_payoff
+def extend_bound_payoffs(options, map_bs):
+    payoffs= 0
 
+    for option in options:
+        temp = option['pre5']
+        map_value = map_bs[option['map']]
+        quantities = option['quantity']
+        payoffs += temp[map_value + 'price'] * quantities
+    return payoffs
 
-def calculate_strategy_stats(options, map_bs):
+def calculate_strategy_stats(options, map_bs, fb, spot_price, addfutures):
     theta = 0.0
     gamma = 0.0
     #delta = 0.0
@@ -106,6 +115,9 @@ def calculate_strategy_stats(options, map_bs):
         vega += temp[map_value + 'vega'] * quantities
         gamma += temp[map_value + 'gamma'] * quantities
         payoff += temp[map_value + 'price'] * quantities
+    if addfutures != False:
+        payoff += temp['spot_price']*fb - np.array([spot_price]*len(temp['spot_price']))*fb
+
 
     return vega, theta, gamma, payoff
 
@@ -116,7 +128,7 @@ def extend_bound_delta(options, map_bs):
         temp = option['pre5']
         map_value = map_bs[option['map']]
         quantities = option['quantity']
-        delta += temp[map_value + 'delta'] * quantities
+        delta += temp[map_value + 'price'] * quantities
     return np.mean(delta),np.std(delta)
 
 def calculate_strategy_worstBestCase(min_index, max_index, options):
