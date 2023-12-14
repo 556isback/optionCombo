@@ -57,7 +57,19 @@ for para in df.para[:5]:
     model.model_plot(para)
 ```
 For a detailed tutorial, please refer to the example file, which includes functions for collecting and formatting data. It provides a ready-to-use tutorial if you intend to trade on Deribit.
-
+### 5. metric explain
+#### para:     Parameters used in plotting.
+#### stra:     The combination of the strategy.
+#### maxRisk:  If you risk 1 BTC in this strategy, how many BTC are at risk.
+#### probal:   How likely this combination is going to be profitable based on the range provided.
+#### RR:       Risk-reward ratio (using mean values of the payoff in the provided range).
+#### wv:       Worst-case implied volatility.
+#### wp:       Worst-case price level.
+#### bv:       Best-case implied volatility.
+#### bp:       Best-case price.
+#### wd:       Worst-case days until expiration.
+#### bd:       Best-case days until expiration.
+#### loss_extended_std: The standard deviation of the loss tail of the combination, handy when trying to find a strategy with a less sharp drop in the payoff curve.
 ## to verify the result
 if you are trading crypto option 
 
