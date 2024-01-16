@@ -8,6 +8,8 @@ OptionCombo is a powerful library that enables the discovery of all possible opt
 
 Add futures into combinations calculation :heavy_check_mark:
 
+Add control to only calculate specific types of option strategy(ie iron condor, bull spread etc..) :black_square_button:
+
 ## limations
 
 OptionCombo currently facilitates the identification of strategies comprising one to four option combinations with the same expiry date, and now includes the capability to integrate future contracts into these combinations.
